@@ -8,7 +8,11 @@ export function processOptions (opts) {
 		}
 	} else {
 		// Options object
-		options = opts
+		options = {
+			callback: opts.value.callback,
+			intersection: opts.intersection,
+			once: opts.once,
+		}
 	}
 	return options
 }
