@@ -1,13 +1,14 @@
-export function processOptions (value) {
+export function processOptions (opts) {
 	let options
-	if (typeof value === 'function') {
+	if (typeof opts.value === 'function') {
 		// Simple options (callback-only)
 		options = {
-			callback: value,
+			callback: opts.value,
+			once: opts.once,
 		}
 	} else {
 		// Options object
-		options = value
+		options = opts
 	}
 	return options
 }

@@ -189,16 +189,17 @@ var toConsumableArray = function (arr) {
   }
 };
 
-function processOptions(value) {
+function processOptions(opts) {
 	var options = void 0;
-	if (typeof value === 'function') {
+	if (typeof opts.value === 'function') {
 		// Simple options (callback-only)
 		options = {
-			callback: value
+			callback: opts.value,
+			once: opts.once
 		};
 	} else {
 		// Options object
-		options = value;
+		options = opts;
 	}
 	return options;
 }
@@ -255,9 +256,15 @@ var VisibilityState = function () {
 
 			this.observer = new IntersectionObserver(function (entries) {
 				var entry = entries[0];
+				var isIntersecting = entry.isIntersecting && entry.intersectionRatio >= _this.threshold;
 				if (_this.callback) {
 					// Use isIntersecting if possible because browsers can report isIntersecting as true, but intersectionRatio as 0, when something very slowly enters the viewport.
-					_this.callback(entry.isIntersecting && entry.intersectionRatio >= _this.threshold, entry);
+					_this.callback(isIntersecting, entry);
+				}
+				if (isIntersecting && _this.options.once) {
+					_this.observer.unobserve(_this.el);
+					_this.destroyObserver();
+					delete _this.el._vue_visibilityState;
 				}
 			}, this.options.intersection);
 
@@ -289,23 +296,32 @@ var VisibilityState = function () {
 
 var ObserveVisibility = {
 	bind: function bind(el, _ref, vnode) {
-		var value = _ref.value;
+		var value = _ref.value,
+		    modifiers = _ref.modifiers;
 
 		if (typeof IntersectionObserver === 'undefined') {
 			console.warn('[vue-observe-visibility] IntersectionObserver API is not available in your browser. Please install this polyfill: https://github.com/w3c/IntersectionObserver/tree/master/polyfill');
 		} else {
-			var state = new VisibilityState(el, value, vnode);
-			el._vue_visibilityState = state;
+			var options = {
+				value: value,
+				once: 'once' in modifiers ? modifiers.once : false
+			};
+			el._vue_visibilityState = new VisibilityState(el, options, vnode);
 		}
 	},
 	update: function update(el, _ref2, vnode) {
-		var value = _ref2.value;
+		var value = _ref2.value,
+		    modifiers = _ref2.modifiers;
 
 		var state = el._vue_visibilityState;
 		if (state) {
 			state.createObserver(value, vnode);
 		} else {
-			this.bind(el, { value: value }, vnode);
+			var options = {
+				value: value,
+				once: 'once' in modifiers ? modifiers.once : false
+			};
+			this.bind(el, options, vnode);
 		}
 	},
 	unbind: function unbind(el) {
