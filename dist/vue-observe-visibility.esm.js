@@ -199,7 +199,11 @@ function processOptions(opts) {
 		};
 	} else {
 		// Options object
-		options = opts;
+		options = {
+			callback: opts.value.callback,
+			intersection: opts.intersection,
+			once: opts.once
+		};
 	}
 	return options;
 }
@@ -257,6 +261,8 @@ var VisibilityState = function () {
 			this.observer = new IntersectionObserver(function (entries) {
 				var entry = entries[0];
 				var isIntersecting = entry.isIntersecting && entry.intersectionRatio >= _this.threshold;
+				console.log('aa', _this.callback);
+
 				if (_this.callback) {
 					// Use isIntersecting if possible because browsers can report isIntersecting as true, but intersectionRatio as 0, when something very slowly enters the viewport.
 					_this.callback(isIntersecting, entry);
