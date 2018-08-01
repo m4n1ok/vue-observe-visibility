@@ -269,6 +269,7 @@ var VisibilityState = function () {
 				if (isIntersecting && _this.options.once) {
 					_this.observer.unobserve(_this.el);
 					_this.destroyObserver();
+					_this.el._vue_alreadyObserved = true;
 					delete _this.el._vue_visibilityState;
 				}
 			}, this.options.intersection);
@@ -299,43 +300,50 @@ var VisibilityState = function () {
 	return VisibilityState;
 }();
 
-var ObserveVisibility = {
-	bind: function bind(el, _ref, vnode) {
-		var value = _ref.value,
-		    modifiers = _ref.modifiers;
+function bind(el, _ref, vnode) {
+	var value = _ref.value,
+	    modifiers = _ref.modifiers;
 
-		if (typeof IntersectionObserver === 'undefined') {
-			console.warn('[vue-observe-visibility] IntersectionObserver API is not available in your browser. Please install this polyfill: https://github.com/w3c/IntersectionObserver/tree/master/polyfill');
-		} else {
-			var options = {
-				value: value,
-				once: 'once' in modifiers ? modifiers.once : false
-			};
-			el._vue_visibilityState = new VisibilityState(el, options, vnode);
-		}
-	},
-	update: function update(el, _ref2, vnode) {
-		var value = _ref2.value,
-		    modifiers = _ref2.modifiers;
-
-		var state = el._vue_visibilityState;
-		if (state) {
-			state.createObserver(value, vnode);
-		} else {
-			var options = {
-				value: value,
-				once: 'once' in modifiers ? modifiers.once : false
-			};
-			this.bind(el, options, vnode);
-		}
-	},
-	unbind: function unbind(el) {
-		var state = el._vue_visibilityState;
-		if (state) {
-			state.destroyObserver();
-			delete el._vue_visibilityState;
-		}
+	if (typeof IntersectionObserver === 'undefined') {
+		console.warn('[vue-observe-visibility] IntersectionObserver API is not available in your browser. Please install this polyfill: https://github.com/w3c/IntersectionObserver/tree/master/polyfill');
+	} else {
+		var options = {
+			value: value,
+			once: 'once' in modifiers ? modifiers.once : false
+		};
+		el._vue_visibilityState = new VisibilityState(el, options, vnode);
 	}
+}
+
+function update(el, _ref2, vnode) {
+	var value = _ref2.value,
+	    modifiers = _ref2.modifiers;
+
+
+	var state = el._vue_visibilityState;
+	if (state) {
+		state.createObserver({
+			value: value,
+			once: 'once' in modifiers ? modifiers.once : false
+		}, vnode);
+	} else {
+		if (el._vue_alreadyObserved) return;
+		bind(el, { value: value, modifiers: modifiers }, vnode);
+	}
+}
+
+function unbind(el) {
+	var state = el._vue_visibilityState;
+	if (state) {
+		state.destroyObserver();
+		delete el._vue_visibilityState;
+	}
+}
+
+var ObserveVisibility = {
+	bind: bind,
+	update: update,
+	unbind: unbind
 };
 
 // Install the components
